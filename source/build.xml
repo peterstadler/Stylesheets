@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." name="update-p5subset-and-create-pr" default="all">
+    
+    <property name="p5subset.url" value="https://jenkins.tei-c.org/job/TEIP5-dev/lastSuccessfulBuild/artifact/P5/release/xml/tei/odd/p5subset.xml"/>
+    
+    <target name="all" depends="create-branch,update-p5subset,update-expected-results,create-pr"/>
+    
+    <target name="update-p5subset">
+        <description>Fetch p5subset.xml from ${p5subset.url} and overwrite current version</description>
+        <get src="${p5subset.url}" dest="."/>
+    </target>
+    
+    <target name="create-branch">
+        <description>Create a new branch to hold all subsequent changes</description>
+        <checksum property="p5subset.md5" file="p5subset.xml"/>
+        <exec executable="git">
+            <arg line="checkout -b ${p5subset.md5}"/>
+        </exec>
+    </target>
+    
+    <target name="update-expected-results">
+        <description>run the tests and update expected results, i.e simply copy over the "actual results" to "expected results"</description>
+        <!-- first: run the tests -->
+        <exec executable="make" dir="../Test">
+            <arg value="DIFFNOW=0"/>
+        </exec>
+        <!-- second: copy files -->
+        <copy todir="../Test/expected-results">
+            <fileset dir="../Test/actual-results">
+                <!-- 
+                    need to exclude various files which ought not to be under version control
+                    see comments in ../Test/Makefile
+                -->
+                <exclude name="oddbyexample.dtd"/>
+                <exclude name="oddbyexample.rnc"/>
+                <exclude name="oddbyexample.xsd"/>
+                <exclude name="Pictures/**"/>
+                <exclude name="test34.combined.odd"/>
+                <exclude name="test_3.epub"/>
+                <exclude name="test3.html"/>
+                <exclude name="test4.html"/>
+                <exclude name="testoucscoursesp5.xml"/>
+                <exclude name="testoucscourses.xml.docx"/>
+                <exclude name="test-pages.epub"/>
+                <exclude name="test.processedodd"/>
+                <exclude name="xml.tmp"/>
+            </fileset>
+        </copy>
+        <!-- third: clean up -->
+        <exec executable="make" dir="../Test">
+            <arg value="clean"/>
+        </exec>
+    </target>
+    
+    <target name="create-pr">
+        <exec executable="git">
+            <!--<env key="GIT_AUTHOR_NAME" value="TEI Technical Council"/>
+            <env key="GIT_AUTHOR_EMAIL" value="council@tei-c.org"/>
+            <env key="GIT_COMMITTER_NAME" value="TEI Technical Council"/>
+            <env key="GIT_COMMITTER_EMAIL" value="council@tei-c.org"/>-->
+            <arg line="commit -a -m 'update p5subset.xml and expected results'"/>
+        </exec>
+        
+        <exec executable="git">
+            <arg line="push origin ${p5subset.md5}"/>
+        </exec>
+    </target>
+    
+</project>
