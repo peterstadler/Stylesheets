@@ -5,21 +5,44 @@
     
     <target name="all" depends="create-branch,update-p5subset,update-expected-results,create-pr"/>
     
+    <target name="_set-branch-name" unless="branch.name">
+        <description>
+            Compute a branch name if none is given via `-Dbranch.name=$myBranchName$` when invocing ant.
+            The branch name is computed by hashing the Last-Modified header of $p5subset.url 
+            and is needed in subsequent targets.
+        </description>
+        <tempfile property="p5subset.headers" deleteonexit="yes"/>
+        <tempfile property="p5subset.last.modified" deleteonexit="yes"/>
+        <exec executable="curl" output="${p5subset.headers}">
+            <arg line="-sLI ${p5subset.url}"/>
+        </exec>
+        <exec executable="grep" output="${p5subset.last.modified}">
+            <arg line="'Last-Modified' ${p5subset.headers}"/>
+        </exec>
+        <checksum property="branch.name" file="${p5subset.last.modified}"/>
+    </target>
+    
     <target name="update-p5subset">
-        <description>Fetch p5subset.xml from ${p5subset.url} and overwrite current version</description>
+        <description>
+            Fetch p5subset.xml from ${p5subset.url} and overwrite current version
+        </description>
         <get src="${p5subset.url}" dest="."/>
     </target>
     
-    <target name="create-branch">
-        <description>Create a new branch to hold all subsequent changes</description>
-        <checksum property="p5subset.md5" file="p5subset.xml"/>
+    <target name="create-branch" depends="_set-branch-name">
+        <description>
+            Create a new branch to hold all subsequent changes
+        </description>
         <exec executable="git">
-            <arg line="checkout -b ${p5subset.md5}"/>
+            <arg line="checkout -b ${branch.name}"/>
         </exec>
     </target>
     
     <target name="update-expected-results">
-        <description>run the tests and update expected results, i.e simply copy over the "actual results" to "expected results"</description>
+        <description>
+            run the tests and update expected results, 
+            i.e simply copy over the "actual results" to "expected results"
+        </description>
         <!-- first: run the tests -->
         <exec executable="make" dir="../Test">
             <arg value="DIFFNOW=0"/>
@@ -52,7 +75,7 @@
         </exec>
     </target>
     
-    <target name="create-pr">
+    <target name="create-pr" depends="_set-branch-name">
         <exec executable="git">
             <!--<env key="GIT_AUTHOR_NAME" value="TEI Technical Council"/>
             <env key="GIT_AUTHOR_EMAIL" value="council@tei-c.org"/>
@@ -62,7 +85,7 @@
         </exec>
         
         <exec executable="git">
-            <arg line="push origin ${p5subset.md5}"/>
+            <arg line="push origin ${branch.name}"/>
         </exec>
     </target>
     
