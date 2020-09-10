@@ -24,3 +24,7 @@ Test/d3.v3.min.js
 *.processedodd
 
 licensekey.txt
+
+# exclude potential leftovers from ant tempfiles
+source/null*
+
