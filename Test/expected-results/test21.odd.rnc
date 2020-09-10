@@ -6567,6 +6567,7 @@ material =
     macro.phraseSeq,
     att.global.attributes,
     att.canonical.attributes,
+    att.typed.attributes,
     empty
   }
 objectType =
