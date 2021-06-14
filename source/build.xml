@@ -3,7 +3,7 @@
     
     <property name="p5subset.url" value="https://jenkins.tei-c.org/job/TEIP5-dev/lastSuccessfulBuild/artifact/P5/release/xml/tei/odd/p5subset.xml"/>
     
-    <target name="all" depends="create-branch,update-p5subset,update-expected-results,create-pr"/>
+    <target name="all" depends="create-branch,update-p5subset,update-expected-results,commit-and-push,create-pr"/>
     
     <target name="_set-branch-name" unless="branch.name">
         <description>
@@ -32,6 +32,7 @@
     <target name="create-branch" depends="_set-branch-name">
         <description>
             Create a new branch to hold all subsequent changes
+            and switch to that branch for subsequent work
         </description>
         <exec executable="git">
             <arg line="checkout -b ${branch.name}"/>
@@ -40,7 +41,7 @@
     
     <target name="update-expected-results">
         <description>
-            run the tests and update expected results, 
+            Run the tests and update expected results, 
             i.e simply copy over the "actual results" to "expected results"
         </description>
         <!-- first: run the tests -->
@@ -75,7 +76,19 @@
         </exec>
     </target>
     
-    <target name="create-pr" depends="_set-branch-name">
+    <target name="commit-and-push">
+        <description>
+            Commit and push all changes from the current branch.
+            User information will be taken from the environment and
+            can be overwritten (e.g. for the Jenkins task) by providing 
+            GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL.
+            Credentials also need to be provided.
+        </description>
+        <!-- get current branch name -->
+        <exec executable="git" outputproperty="current.branch">
+            <arg line="rev-parse --abbrev-ref HEAD"/>
+        </exec>
+        <!-- commit changes to modified files -->
         <exec executable="git">
             <!--<env key="GIT_AUTHOR_NAME" value="TEI Technical Council"/>
             <env key="GIT_AUTHOR_EMAIL" value="council@tei-c.org"/>
@@ -83,9 +96,17 @@
             <env key="GIT_COMMITTER_EMAIL" value="council@tei-c.org"/>-->
             <arg line="commit -a -m 'update p5subset.xml and expected results'"/>
         </exec>
-        
+        <!-- push to origin -->
         <exec executable="git">
-            <arg line="push origin ${branch.name}"/>
+            <arg line="push origin ${current.branch}"/>
+        </exec>
+    </target>
+    
+    <target name="create-pr">
+        <description>
+            Create the pull request via the 
+        </description>
+        <exec executable="curl">
         </exec>
     </target>
     
